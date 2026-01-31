@@ -8,18 +8,9 @@ time = datetime.now()
 start = (41.4918, -71.3119)
 finish = (32.3078, -64.7505)
 
-# start=(0,0)
-# finish=(1, 1)
-
 
 
 if __name__ == "__main__":
-    
-
-
-
     nodes = GN.create_grid(start, finish, 5, 100)
-    print(nodes)
     GN.grid_visualize(start, finish, nodes)
-
     
