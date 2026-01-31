@@ -43,15 +43,6 @@ def get_lowest_f_node(node_list):
     return min(node_list, key=lambda node: node['f'])
 
 def get_valid_neighbors(nodes, lon_idx, lat_idx):
-    """
-    Get the neighbors for a single node at the given grid indices.
-    
-    nodes: 2D grid of all nodes
-    lon_idx: index in the outer list (longitude/column index)
-    lat_idx: index in the inner list (latitude/row index)
-    
-    Returns: list of neighbor nodes
-    """
     num_lons = len(nodes)
     num_lats = len(nodes[0]) if num_lons > 0 else 0
     
