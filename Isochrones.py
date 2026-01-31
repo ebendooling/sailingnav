@@ -3,11 +3,9 @@ import folium
 import numpy as np
 
 
-
 def find_isochrone_line(polars, cur_time, lat, lon, h_step, dt=1):
 
     isochrone = []
-
     for hdg in range(0, 360, h_step):
         bsp = func.find_speed_at(polars, cur_time, lat, lon, hdg)
 
@@ -28,18 +26,16 @@ def find_isochrone_line(polars, cur_time, lat, lon, h_step, dt=1):
             })
     return isochrone
 
+
 def find_limited_isochrone(polars, cur_time, lat, lon, dt, endlat, endlon, h_step, max_dev=60):
     isochrone = []
-
     end_bearing = func.rhumb_bearing(lat, lon, endlat, endlon)
 
     max_hdg = int(end_bearing + max_dev)
     min_hdg = int(end_bearing - max_dev)
 
     for hdg in range(min_hdg, max_hdg, h_step):
-
         bsp = func.find_speed_at(polars, cur_time, lat, lon, hdg)
-
         if bsp <= 0:
             continue
 
@@ -57,23 +53,21 @@ def find_limited_isochrone(polars, cur_time, lat, lon, dt, endlat, endlon, h_ste
             })
     return isochrone
 
+
 def build_isochrones(polars, start_time, start_lat, start_lon,  endlat, endlon, dt_hours=6, h_step=30, max_dev=60, steps=5):
     isochrones = [find_isochrone_line(polars, start_time, start_lat, start_lon, h_step, dt=1)]
-
-
     cur_points = [{'lat': start_lat,'lon': start_lon,'time': start_time}]
 
     for step in range(steps-1):
         next_points = []
         N_KEEP = 100
         keep_steps = int(len(cur_points) / N_KEEP) + 5
+
         for point in cur_points[::keep_steps]:
             lat, lon, time = point['lat'], point['lon'], point['time']
             line = find_limited_isochrone(polars, time, lat, lon, dt_hours, endlat, endlon, h_step)
-            
+        
             next_points.extend(line)
-
-       
 
         dists = [
         func.find_distance((start_lat, start_lon), (p['lat'], p['lon']))
@@ -92,10 +86,8 @@ def build_isochrones(polars, start_time, start_lat, start_lon,  endlat, endlon, 
     return isochrones
 
 
-
 def iso_visualize(start, end, isochrones):
     m = folium.Map(location=start, zoom_start=6)
-    
     
     for step_idx, isochrone in enumerate(isochrones):
         

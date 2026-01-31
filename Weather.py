@@ -4,13 +4,24 @@ import requests_cache
 from retry_requests import retry
 from datetime import datetime
 
-# One-time client setup (do this once in your program)
+
 cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
 retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
 openmeteo = openmeteo_requests.Client(session=retry_session)
 
 
 def tws_twd(lat, lon, datetime):
+    """ Access Open Meteo public weather API
+
+    Args:
+        lat: float
+        lon: float
+        datetime: datetime
+
+    Returns:
+        wind_speed_10m: float
+        wind_direction_10m: float
+    """
     time = pd.Timestamp(datetime).tz_convert("UTC") if pd.Timestamp(datetime).tzinfo else pd.Timestamp(datetime, tz="UTC")
 
     params = {
@@ -40,7 +51,6 @@ def tws_twd(lat, lon, datetime):
         "wind_speed_10m": wind_speed,
         "wind_direction_10m": wind_dir,
     })
-
 
     idx = (df["time"] - time).abs().idxmin()
     row = df.loc[idx]

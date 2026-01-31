@@ -33,7 +33,6 @@ def grid_visualize(start, finish, nodes):
     m.save('route_grid.html')
 
 
-
 def create_node(position, g = 10000000, h = 0.0, parent = None):
     """ Generates node dictionary
 
@@ -56,6 +55,7 @@ def create_node(position, g = 10000000, h = 0.0, parent = None):
         'neighbors': [] # list of neighboring nodes index's
     }
 
+
 def get_lowest_f_node(nodes):
     """ Returns lowest f value in a node list
 
@@ -68,6 +68,7 @@ def get_lowest_f_node(nodes):
     if not nodes:
         return None
     return min(nodes, key=lambda node: node['f'])
+
 
 def get_valid_neighbors(nodes, lat_idx, lon_idx):
     """ Generates list of neighboring nodes
