@@ -4,10 +4,18 @@ import numpy as np
 import heapq
 import math
 
-open_set_heap = []
-count = 0
 
-def grid_visualize(start, end, nodes):
+def grid_visualize(start, finish, nodes):
+    """ Generates visual of grid on folium map
+
+    Args:
+        start: starting point
+        finish: finishing point
+        nodes: list of nodes
+
+    Returns:
+        none
+    """
     m = folium.Map(location=start, zoom_start=6)
 
     for row in nodes:
@@ -21,53 +29,90 @@ def grid_visualize(start, end, nodes):
             fillOpacity="1.0"
             ).add_to(m)
     folium.Marker(start, popup="Start", icon=folium.Icon(color="green")).add_to(m)
-    folium.Marker(end, popup="End", icon=folium.Icon(color="red")).add_to(m)
+    folium.Marker(finish, popup="finish", icon=folium.Icon(color="red")).add_to(m)
     m.save('route_grid.html')
 
 
 
 def create_node(position, g = 10000000, h = 0.0, parent = None):
+    """ Generates node dictionary
 
+    Args:
+        position: (lat, lon)
+        g: cost so far to this point
+        h: heuristic cost to finish
+        f: total estimate of cost
+        parent: last point on path
+
+    Returns:
+        node: dictionary
+    """
     return {
         'position': position,
-        'g': int(g), # cost so far
-        'h': int(h), # heuristic cost to end
-        'f': int(g + h), # total estimated cost
-        'parent': parent, # where it came from
-        'neighbors': []
+        'g': int(g),
+        'h': int(h),
+        'f': int(g + h),
+        'parent': parent,
+        'neighbors': [] # list of neighboring nodes index's
     }
 
-def get_lowest_f_node(node_list):
-    if not node_list:
+def get_lowest_f_node(nodes):
+    """ Returns lowest f value in a node list
+
+    Args:
+        nodes: list of nodes
+
+    Returns:
+        node with lowest f value 
+    """
+    if not nodes:
         return None
-    return min(node_list, key=lambda node: node['f'])
+    return min(nodes, key=lambda node: node['f'])
 
-def get_valid_neighbors(nodes, lon_idx, lat_idx):
-    num_lons = len(nodes)
-    num_lats = len(nodes[0]) if num_lons > 0 else 0
+def get_valid_neighbors(nodes, lat_idx, lon_idx):
+    """ Generates list of neighboring nodes
+
+    Args:
+        nodes: complete list of nodes in a grid
+        lat_idx: relative index of a specific node's row in the grid
+        lon_idx: relative index of a specific node in it's row
+
+    Returns:
+        neighbors: list of neighboring nodes
+    """
+    num_lats = len(nodes)
+    num_lons = len(nodes[0]) if num_lons > 0 else 0
     
-
     directions = [ (-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1) ]
     
     neighbors = []
-    
-    for dlon_idx, dlat_idx in directions:
-        neighbor_lon_idx = lon_idx + dlon_idx
+    for dlat_idx, dlon_idx in directions:
         neighbor_lat_idx = lat_idx + dlat_idx
+        neighbor_lon_idx = lon_idx + dlon_idx
         
-        if (0 <= neighbor_lon_idx < num_lons and 0 <= neighbor_lat_idx < num_lats):
+        if (0 <= neighbor_lat_idx < num_lats and 0 <= neighbor_lon_idx < num_lons):
             
-            neighbor_node = nodes[neighbor_lon_idx][neighbor_lat_idx]
+            neighbor_node = nodes[neighbor_lat_idx][neighbor_lon_idx]
             neighbors.append(neighbor_node)
     
     return neighbors
     
 
-def create_grid(start, end, padding=5, resolution=50):
+def create_grid(start, finish, padding=5, resolution=50):
+    """ Generates list of nodes in rectangular grid between start and finish
 
+    Args:
+        start: starting point
+        finish: finishing point
+        padding: amount of nodes past start and finish points
+        resolution: adjust density of nodes
 
-    lat_min, lat_max = sorted([start[0], end[0]])
-    lon_min, lon_max = sorted([start[1], end[1]])
+    Returns:
+        list of nodes
+    """
+
+    lat_min, lat_max = sorted([start[0], finish[0]])
+    lon_min, lon_max = sorted([start[1], finish[1]])
 
     lat_step = (lat_max - lat_min) / resolution
     lon_step = (lon_max - lon_min) / resolution
@@ -80,7 +125,6 @@ def create_grid(start, end, padding=5, resolution=50):
     grid_size = resolution + (padding * 2) + 1
     lats = np.linspace(lat_min, lat_max, grid_size)
     lons = np.linspace(lon_min, lon_max, grid_size)
-
 
     nodes = []
     for lon in lons:
@@ -99,9 +143,9 @@ def create_grid(start, end, padding=5, resolution=50):
                     if dlat == 0 and dlon == 0:
                         continue
                     
-                    
                     new_lat = lat_idx + dlat
                     new_lon = lon_idx + dlon
+
                     if (0 <= new_lat < len(nodes) and 
                         0 <= new_lon < len(nodes[0])):
                         neighbors.append((new_lat, new_lon))
@@ -111,14 +155,14 @@ def create_grid(start, end, padding=5, resolution=50):
     return nodes
     
 
-
 def node_weight(node_a, node_b, polars, datetime):
     node_weight = func.find_time_to(polars, datetime, node_a[0], node_a[1], node_b[0], node_b[1])
 
     return node_weight
 
 
-
+open_set_heap = []
+count = 0
 
 
 def push_node(node):
@@ -142,9 +186,19 @@ def reconstruct_path(current):
     return path
 
 
+def astar(start, finish, padding=5, resolution=50):
+    """ Operates a* algorithm on grid of nodes
 
-def astar(start, finish, dlat, dlon, padding=5, resolution=50):
-    nodes = create_grid(start, finish, dlat, dlon, padding, resolution)
+    Args:
+        start: starting point
+        finish: finishing point
+        padding: amount of nodes past start and finish points for grid
+        resolution: adjust density of nodes in grid
+
+    Returns:
+        optimal reconstructed path from start to finish
+    """
+    nodes = create_grid(start, finish, padding, resolution)
     start = nodes[padding][padding]
     finish = nodes[-(padding+1)][-(padding+1)]
     openList = [start]
@@ -154,7 +208,6 @@ def astar(start, finish, dlat, dlon, padding=5, resolution=50):
     start['h'] = func.find_distance(start, finish)
     start['f'] = start['g'] + start['h']
 
-
     while len(openList) > 0:
         current = pop_lowest_f(openList) # node with lowest f value
     
@@ -162,6 +215,7 @@ def astar(start, finish, dlat, dlon, padding=5, resolution=50):
             return reconstruct_path()
 
         closedList += openList.pop(0)
+
         for neighbor in current['neighbors']:
             if neighbor in closedList:
                 continue
@@ -177,28 +231,19 @@ def astar(start, finish, dlat, dlon, padding=5, resolution=50):
             nodes[neighbor[0]][neighbor[1]]['h'] = func.find_distance((nodes[neighbor[0]][neighbor[1]]['position']), (finish['position']))
             nodes[neighbor[0]][neighbor[1]]['f'] = nodes[neighbor[0]][neighbor[1]]['g'] + nodes[neighbor[0]][neighbor[1]]['h']
 
-
-    
     return print("No path exists")
 
 
-
-
-
-
-
-def create_hexagonal_grid(start, end, spacing_km):
-    lat_min, lat_max = sorted([start[0], end[0]])
-    lon_min, lon_max = sorted([start[1], end[1]])
+def create_hexagonal_grid(start, finish, spacing_km):
+    lat_min, lat_max = sorted([start[0], finish[0]])
+    lon_min, lon_max = sorted([start[1], finish[1]])
     
     center_lat = (lat_min + lat_max) / 2
     
-
     dlat = spacing_km / 111.0
     dlon = spacing_km / (111.0 * math.cos(math.radians(center_lat)))
     
     row_height = dlat * math.sqrt(3) / 2
-
     col_width = dlon
 
     num_rows = int(np.ceil((lat_max - lat_min) / row_height)) + 1
@@ -228,21 +273,21 @@ def create_hexagonal_grid(start, end, spacing_km):
         
         if row % 2 == 0:
             neighbor_offsets = [
-                (-1, -1),  # Upper left
-                (-1, 0),   # Upper right
-                (0, -1),   # Left
-                (0, 1),    # Right
-                (1, -1),   # Lower left
-                (1, 0)     # Lower right
+                (-1, -1),
+                (-1, 0),
+                (0, -1),
+                (0, 1),
+                (1, -1),
+                (1, 0)
             ]
         else:
             neighbor_offsets = [
-                (-1, 0),   # Upper left
-                (-1, 1),   # Upper right
-                (0, -1),   # Left
-                (0, 1),    # Right
-                (1, 0),    # Lower left
-                (1, 1)     # Lower right
+                (-1, 0),
+                (-1, 1),
+                (0, -1),
+                (0, 1),
+                (1, 0),
+                (1, 1)
             ]
         
         for drow, dcol in neighbor_offsets:
@@ -268,19 +313,15 @@ def find_closest_node_hex(node_lookup, target_lat, target_lon):
     return closest_node
 
 
-nodes, node_lookup = create_hexagonal_grid((5, 9), (15, 15), spacing_km=10)
 
-# Find start and end nodes
-start_node = find_closest_node_hex(node_lookup, 5, 9)
-end_node = find_closest_node_hex(node_lookup, 15, 15)
 
-def grid_visualize_hex(start, end, nodes):
+def grid_visualize_hex(start, finish, nodes):
     m = folium.Map(location=start, zoom_start=6)
 
     for node in nodes:
         folium.Circle(
             location=node['position'],
-            radius=500,
+            radius=5,
             color="black",
             fill=True,
             fillColor="black",
@@ -288,7 +329,18 @@ def grid_visualize_hex(start, end, nodes):
         ).add_to(m)
     
     folium.Marker(start, popup="Start", icon=folium.Icon(color="green")).add_to(m)
-    folium.Marker(end, popup="End", icon=folium.Icon(color="red")).add_to(m)
+    folium.Marker(finish, popup="finish", icon=folium.Icon(color="red")).add_to(m)
     m.save('route_grid_hex.html')
 
-grid_visualize_hex((5, 9), (15, 15), nodes)
+
+if __name__ == "__main__":
+
+    nodes, node_lookup = create_hexagonal_grid((5, 9), (15, 15), spacing_km=10)
+
+    # Find start and finish nodes
+    start_node = find_closest_node_hex(node_lookup, 5, 9)
+    finish_node = find_closest_node_hex(node_lookup, 15, 15)
+
+
+
+    grid_visualize_hex((5, 9), (15, 15), nodes)
